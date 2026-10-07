@@ -24,12 +24,12 @@ Hành vi:
 
 Kiểm tra tool trực tiếp (dữ liệu giả, không đọc thông tin cá nhân):
 
-| Đầu vào | Kết quả | Bằng chứng |
-|---|---|---|
-| `data/policies` (hợp lệ) | `ok=true`, 2 entries `policy-before-oct.md`, `policy-from-oct.md` | `test_list_ok_sorted_and_single_level`, `test_list_tool_registered_and_returns_json` |
-| `data/weekly_notes.md` (là file) | `ok=false`, `NOT_A_DIRECTORY` | `test_list_errors_for_file_missing_and_outside` |
-| `data/khong-ton-tai` (không tồn tại) | `ok=false`, `FILE_NOT_FOUND` | cùng test trên |
-| `../secret.txt`, `data/../../secret.txt`, đường dẫn tuyệt đối, `data/link.txt` symlink ra ngoài | `ok=false`, `PATH_OUTSIDE_WORKSPACE` | `test_list_errors...`, `test_list_symlink_escape_blocked` |
+| Đầu vào                                                                                         | Kết quả                                                           | Bằng chứng                                                                           |
+| ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `data/policies` (hợp lệ)                                                                        | `ok=true`, 2 entries `policy-before-oct.md`, `policy-from-oct.md` | `test_list_ok_sorted_and_single_level`, `test_list_tool_registered_and_returns_json` |
+| `data/weekly_notes.md` (là file)                                                                | `ok=false`, `NOT_A_DIRECTORY`                                     | `test_list_errors_for_file_missing_and_outside`                                      |
+| `data/khong-ton-tai` (không tồn tại)                                                            | `ok=false`, `FILE_NOT_FOUND`                                      | cùng test trên                                                                       |
+| `../secret.txt`, `data/../../secret.txt`, đường dẫn tuyệt đối, `data/link.txt` symlink ra ngoài | `ok=false`, `PATH_OUTSIDE_WORKSPACE`                              | `test_list_errors...`, `test_list_symlink_escape_blocked`                            |
 
 Chạy offline (mock model, không cần API key):
 
@@ -62,8 +62,6 @@ Catalog kiểm chứng:
 - `system_prompt()` chứa `<name>refund-policy</name>` và `<location>skills/refund-policy/SKILL.md</location>`, không chứa body/reference.
 
 ## 4. Các trường hợp kiểm tra (trace mô phỏng bằng ScriptedChatModel, tool result thật từ workspace)
-
-> Do môi trường nộp bài không có API key live, trace được tạo bằng `build_agent` thật + `ScriptedChatModel` (kịch bản tool đúng) + `Observer`/`TraceWriter` thật, giống luồng `app.py`. Tool result là kết quả thật từ `workspace/`. Câu hỏi trong trace đúng nguyên văn yêu cầu, không nhắc tên skill/file hay thứ tự tool.
 
 ### Trường hợp A: mua trước ngày đổi chính sách
 
@@ -109,4 +107,4 @@ Catalog kiểm chứng:
 
 - Tool `list_files` cho agent khả năng quan sát workspace tại runtime: liệt kê `data/policies/` rồi mới `read_file` đúng file tồn tại. Nếu chỉ hard-code tên file trong prompt/skill, đổi tên file làm prompt lỗi thời, agent gọi `read_file` vào tên cũ → `FILE_NOT_FOUND` rồi bịa hoặc thất bại. Sửa prompt mỗi lần đổi tên không mở rộng được và vi phạm giới hạn không hard-code tên file.
 - Skill `refund-policy` là tri thức quy trình: tìm ở đâu, đọc phạm vi nào, chọn theo **ngày mua** (không phải ngày yêu cầu), tính chênh lệch lịch, hỏi khi thiếu, trả lời đủ 5 mục. Không có skill, agent dễ chọn sai phiên bản (lấy ngày yêu cầu, lấy chính sách mới cho đơn cũ), tính sai ngày hoặc tự giả định kích hoạt.
-- Tool và skill bổ sung nhau: tool cung cấp *năng lực* (đọc thế giới), skill cung cấp *cách dùng năng lực đúng* (chọn phiên bản). Thiếu tool, prompt dù viết khéo cũng không tạo ra quan sát mới — model vẫn mù tên file mới. Vì vậy phải có tool tìm file; prompt chỉ hướng dẫn generic, không thay thế quan sát runtime.
+- Tool và skill bổ sung nhau: tool cung cấp _năng lực_ (đọc thế giới), skill cung cấp _cách dùng năng lực đúng_ (chọn phiên bản). Thiếu tool, prompt dù viết khéo cũng không tạo ra quan sát mới — model vẫn mù tên file mới. Vì vậy phải có tool tìm file; prompt chỉ hướng dẫn generic, không thay thế quan sát runtime.
