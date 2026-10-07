@@ -5,8 +5,8 @@ import json
 import pytest
 
 from reset_workspace import WorkspaceError, ensure_workspace, reset_workspace
-from tools import read_file, write_file
-from tools.files import MAX_READ_BYTES, _read, _write
+from tools import list_files, read_file, write_file
+from tools.files import MAX_READ_BYTES, _list, _read, _write
 
 
 @pytest.fixture
@@ -83,6 +83,52 @@ def test_tools_return_json_against_project_workspace(lab_dirs):
     written = json.loads(write_file.invoke({"path": "output/t.md", "content": "ok"}))
     assert written["status"] == "created"
     assert json.loads(read_file.invoke({"path": "output/t.md"}))["content"] == "ok"
+
+
+def test_list_ok_sorted_and_single_level(ws):
+    (ws / "data" / "b.md").write_text("B", encoding="utf-8")
+    (ws / "data" / "a.md").write_text("A", encoding="utf-8")
+    (ws / "data" / "sub").mkdir(exist_ok=True)
+    (ws / "data" / "sub" / "inner.md").write_text("inner", encoding="utf-8")
+    from tools.files import _list
+
+    result = _list(ws, "data")
+    assert result["ok"] is True and result["path"] == "data"
+    names = [e["name"] for e in result["entries"]]
+    assert names == sorted(names)
+    by_name = {e["name"]: e for e in result["entries"]}
+    assert by_name["a.md"] == {"name": "a.md", "path": "data/a.md", "type": "file"}
+    assert by_name["sub"] == {"name": "sub", "path": "data/sub", "type": "directory"}
+    # không duyệt đệ quy: inner.md không xuất hiện ở cấp data
+    assert all(e["path"].count("/") == 1 for e in result["entries"])
+
+
+def test_list_errors_for_file_missing_and_outside(ws):
+    from tools.files import _list
+
+    assert _list(ws, "data/note.md")["error"]["code"] == "NOT_A_DIRECTORY"
+    assert _list(ws, "data/khong-ton-tai")["error"]["code"] == "FILE_NOT_FOUND"
+    assert _list(ws, "../secret.txt")["error"]["code"] == "PATH_OUTSIDE_WORKSPACE"
+    assert _list(ws, str(ws / "data"))["error"]["code"] == "PATH_OUTSIDE_WORKSPACE"
+
+
+def test_list_symlink_escape_blocked(ws, tmp_path):
+    from tools.files import _list
+
+    (tmp_path / "secret.txt").write_text("secret")
+    (ws / "data" / "link.txt").symlink_to(tmp_path / "secret.txt")
+    # liệt kê thư mục cha vẫn ok, nhưng đi vào symlink dẫn ra ngoài thì chặn
+    assert _list(ws, "data")["ok"] is True
+    result = _list(ws, "data/link.txt")
+    assert result["ok"] is False and result["error"]["code"] == "PATH_OUTSIDE_WORKSPACE"
+
+
+def test_list_tool_registered_and_returns_json(lab_dirs):
+    from tools import list_files
+
+    assert list_files.name == "list_files"
+    result = json.loads(list_files.invoke({"path": "data"}))
+    assert result["ok"] is True and any(e["type"] in {"file", "directory"} for e in result["entries"])
 
 
 def test_reset_restores_fixtures_and_requires_marker(tmp_path):

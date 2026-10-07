@@ -13,8 +13,13 @@ def write_skill(workspace, folder, text):
 
 def test_fixture_catalog_metadata():
     catalog = scan_skills(paths.FIXTURES_DIR)
-    assert [(s.name, s.location) for s in catalog.skills] == [("weekly-report", "skills/weekly-report/SKILL.md")]
-    assert "báo cáo tuần" in catalog.skills[0].description
+    assert [(s.name, s.location) for s in catalog.skills] == [
+        ("refund-policy", "skills/refund-policy/SKILL.md"),
+        ("weekly-report", "skills/weekly-report/SKILL.md"),
+    ]
+    by_name = {s.name: s for s in catalog.skills}
+    assert "báo cáo tuần" in by_name["weekly-report"].description
+    assert "hoàn tiền" in by_name["refund-policy"].description
     assert catalog.diagnostics == []
 
 
